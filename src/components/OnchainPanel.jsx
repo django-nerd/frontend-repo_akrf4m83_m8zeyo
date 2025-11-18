@@ -1,4 +1,5 @@
 import React, { useEffect, useState } from 'react'
+import { useAnchorClient } from '../lib/useAnchorClient'
 
 export default function OnchainPanel({ wallet }) {
   const baseUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'
@@ -6,6 +7,9 @@ export default function OnchainPanel({ wallet }) {
   const [balance, setBalance] = useState(null)
   const [status, setStatus] = useState('')
   const [onchain, setOnchain] = useState(null)
+
+  // Anchor client hook (loads config + prepares provider/program)
+  const anchorClient = useAnchorClient(baseUrl)
 
   useEffect(() => {
     const load = async () => {
@@ -58,16 +62,36 @@ export default function OnchainPanel({ wallet }) {
     setStatus('Mint intent saved. Use scripts to mint on-chain later.')
   }
 
+  const connectWallet = async () => {
+    try {
+      const pubkey = await anchorClient.connectWallet()
+      setStatus(`Wallet connected: ${pubkey}`)
+    } catch (e) {
+      setStatus('Wallet connect failed')
+    }
+  }
+
+  const invokeStub = async () => {
+    try {
+      if (!anchorClient.program) return alert('Program not ready yet')
+      // This is a placeholder call to show program readiness
+      // In Phase 2.1 we will wire to real instructions
+      setStatus('Program ready (IDL loaded).')
+    } catch (e) {
+      setStatus('Program not available')
+    }
+  }
+
   return (
     <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
       <h3 className="text-lg font-semibold">On-chain Panel</h3>
       <p className="text-indigo-200/80 text-sm mb-4">Prototype SPL integration: balance, trade logs, mint intents.</p>
 
-      {onchain && (
+      {(onchain || anchorClient.ready) && (
         <div className="mb-4 text-xs text-indigo-200/80 space-y-1">
-          <div>Cluster: <span className="font-mono">{onchain.cluster}</span></div>
-          <div>Program ID: <span className="font-mono">{onchain.programId}</span></div>
-          <div>Treasury: <span className="font-mono">{onchain.treasury}</span></div>
+          <div>Cluster: <span className="font-mono">{anchorClient.cluster || onchain?.cluster}</span></div>
+          <div>Program ID: <span className="font-mono">{anchorClient.programId || onchain?.programId}</span></div>
+          <div>Treasury: <span className="font-mono">{anchorClient.treasury || onchain?.treasury}</span></div>
         </div>
       )}
 
@@ -89,6 +113,8 @@ export default function OnchainPanel({ wallet }) {
       )}
 
       <div className="flex flex-wrap gap-2">
+        <button onClick={connectWallet} className="px-3 py-2 rounded bg-sky-600 hover:bg-sky-500 text-sm">Connect Wallet</button>
+        <button onClick={invokeStub} className="px-3 py-2 rounded bg-purple-600 hover:bg-purple-500 text-sm">Program Check</button>
         <button onClick={demoBuy} className="px-3 py-2 rounded bg-emerald-600 hover:bg-emerald-500 text-sm">Buy (demo)</button>
         <button onClick={demoSell} className="px-3 py-2 rounded bg-amber-600 hover:bg-amber-500 text-sm">Sell (demo)</button>
         <button onClick={mintIntent} className="px-3 py-2 rounded bg-fuchsia-600 hover:bg-fuchsia-500 text-sm">Mint Intent</button>
