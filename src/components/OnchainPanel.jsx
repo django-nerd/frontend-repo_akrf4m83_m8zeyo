@@ -1,10 +1,24 @@
-import React, { useState } from 'react'
+import React, { useEffect, useState } from 'react'
 
 export default function OnchainPanel({ wallet }) {
   const baseUrl = import.meta.env.VITE_BACKEND_URL || 'http://localhost:8000'
   const [address, setAddress] = useState('')
   const [balance, setBalance] = useState(null)
   const [status, setStatus] = useState('')
+  const [onchain, setOnchain] = useState(null)
+
+  useEffect(() => {
+    const load = async () => {
+      try {
+        const r = await fetch(`${baseUrl}/api/onchain/config`)
+        const j = await r.json()
+        setOnchain(j)
+      } catch (e) {
+        // ignore
+      }
+    }
+    load()
+  }, [baseUrl])
 
   const queryBalance = async () => {
     const addr = wallet || address
@@ -48,6 +62,14 @@ export default function OnchainPanel({ wallet }) {
     <div className="rounded-2xl border border-white/10 bg-white/5 p-4">
       <h3 className="text-lg font-semibold">On-chain Panel</h3>
       <p className="text-indigo-200/80 text-sm mb-4">Prototype SPL integration: balance, trade logs, mint intents.</p>
+
+      {onchain && (
+        <div className="mb-4 text-xs text-indigo-200/80 space-y-1">
+          <div>Cluster: <span className="font-mono">{onchain.cluster}</span></div>
+          <div>Program ID: <span className="font-mono">{onchain.programId}</span></div>
+          <div>Treasury: <span className="font-mono">{onchain.treasury}</span></div>
+        </div>
+      )}
 
       <div className="flex items-center gap-2 mb-3">
         <input
